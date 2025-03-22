@@ -2,3 +2,4 @@ node_modules/
 .env 
 .env 
 ".env"   # Ensure it's ignored in future commits
+".env" 

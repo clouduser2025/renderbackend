@@ -23,7 +23,7 @@ app.post('/api/chat', async (req, res) => {
             messages: [
                 {
                     role: 'system',
-                    content: 'You are a helpful assistant for a CRM system at https://srv616-files.hstgr.io/1017525553170ff4/files/public_html/crmdemo/. Guide users to pages like /dashboard, /event, etc., or answer questions. Suggest links when relevant.'
+                    content: 'You are a helpful assistant for a CRM system at https://iysinfo.com/crmdemo/. Guide users to pages like /dashboard, /event, etc., or answer questions. Suggest links when relevant.'
                 },
                 { role: 'user', content: message },
             ],
@@ -32,8 +32,9 @@ app.post('/api/chat', async (req, res) => {
         });
         res.json({ reply: completion.choices[0].message.content });
     } catch (error) {
-        console.error('Error:', error);
-        res.status(500).json({ error: 'Something went wrong' });
+        console.error('Open AI Error:', error.message); // Log the specific error message
+        console.error('Error Details:', error.response ? error.response.data : error); // Log additional details if available
+        res.status(500).json({ error: error.message || 'Something went wrong' }); // Send specific error to frontend
     }
 });
 

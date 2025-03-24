@@ -18,8 +18,15 @@ const app = express();
 // Configure CORS with logging
 app.use(cors({
     origin: (origin, callback) => {
-        const allowedOrigins = ['https://iysinfo.com', ];
+        console.log(`CORS: Received request from origin: ${origin}`); // Add logging
+        const allowedOrigins = [
+            'https://iysinfo.com',
+            'https://crmdemo.iysinfo.com', // Add subdomain if applicable
+            'http://localhost:3000', // Add for local development
+            'http://localhost:8000' // Add if using a different port
+        ];
         if (!origin || allowedOrigins.includes(origin)) {
+            console.log(`CORS: Origin ${origin} allowed`);
             callback(null, true);
         } else {
             console.error(`CORS error: Origin ${origin} not allowed`);
@@ -51,6 +58,7 @@ app.get('/api/health', (req, res) => {
     res.status(200).json({ status: 'OK', message: 'Server is running' });
 });
 
+// Chat endpoint
 app.post('/api/chat', async (req, res) => {
     const { message } = req.body;
 
@@ -62,6 +70,7 @@ app.post('/api/chat', async (req, res) => {
     try {
         console.log(`Received message from ${req.headers.origin}: ${message}`);
 
+        console.log('Sending request to OpenAI...');
         const completion = await openai.chat.completions.create({
             model: 'gpt-3.5-turbo',
             messages: [

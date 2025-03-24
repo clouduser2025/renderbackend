@@ -2,7 +2,7 @@ const express = require('express');
 const { OpenAI } = require('openai');
 const dotenv = require('dotenv');
 const cors = require('cors');
-const rateLimit = require('express-rate-limit'); // Add rate limiting
+const rateLimit = require('express-rate-limit');
 
 // Load environment variables
 dotenv.config();
@@ -10,20 +10,30 @@ dotenv.config();
 // Validate environment variables
 if (!process.env.OPENAI_API_KEY) {
     console.error('Error: OPENAI_API_KEY is not set in the environment variables.');
-    process.exit(1); // Exit the process if the API key is missing
+    process.exit(1);
 }
 
 const app = express();
 
-// Configure CORS to allow requests from the frontend domain
-app.use(cors({ 
-    origin: ['https://iysinfo.com', 'https://srv616-files.hstgr.io'], // Allow both domains
-    methods: ['POST'], // Only allow POST requests
-    allowedHeaders: ['Content-Type'], // Only allow specific headers
+// Configure CORS with logging
+app.use(cors({
+    origin: (origin, callback) => {
+        const allowedOrigins = ['https://iysinfo.com', 'https://srv616-files.hstgr.io'];
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            console.error(`CORS error: Origin ${origin} not allowed`);
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
+    methods: ['POST', 'GET'], // Allow POST and GET (for health check)
+    allowedHeaders: ['Content-Type'],
+    credentials: false, // If you need to send cookies, set this to true
 }));
+
 app.use(express.json());
 
-// Add rate limiting to prevent abuse
+// Add rate limiting
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
     max: 100, // Limit each IP to 100 requests per windowMs
@@ -50,7 +60,7 @@ app.post('/api/chat', async (req, res) => {
     }
 
     try {
-        console.log(`Received message: ${message}`); // Log the incoming message
+        console.log(`Received message from ${req.headers.origin}: ${message}`);
 
         const completion = await openai.chat.completions.create({
             model: 'gpt-3.5-turbo',
@@ -66,13 +76,12 @@ app.post('/api/chat', async (req, res) => {
         });
 
         const reply = completion.choices[0].message.content;
-        console.log(`OpenAI response: ${reply}`); // Log the response
+        console.log(`OpenAI response: ${reply}`);
         res.json({ reply });
     } catch (error) {
-        console.error('OpenAI Error:', error.message); // Log the specific error message
-        console.error('Error Details:', error.response ? error.response.data : error); // Log additional details if available
+        console.error('OpenAI Error:', error.message);
+        console.error('Error Details:', error.response ? error.response.data : error);
 
-        // Provide more specific error messages to the frontend
         if (error.response) {
             if (error.response.status === 429) {
                 return res.status(429).json({ error: 'Rate limit exceeded. Please try again later.' });
@@ -85,7 +94,6 @@ app.post('/api/chat', async (req, res) => {
             }
         }
 
-        // Generic error message for other cases
         res.status(500).json({ error: 'Failed to fetch response from OpenAI. Please try again later.' });
     }
 });
